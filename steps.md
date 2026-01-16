@@ -1,4 +1,4 @@
-# UX Plan Steps
+# UX Plan Steps (Flow-Next Integration)
 
 **CRITICAL**: Phases are SEQUENTIAL. Each phase depends on the previous phase's output.
 
@@ -14,8 +14,13 @@ mkdir -p .flow/ux/{feature-slug}
 
 4. If input is a Flow ID (fn-N), fetch existing context:
 ```bash
-$FLOWCTL show <id> --json
-$FLOWCTL cat <id>
+flowctl show <id> --json 2>/dev/null
+flowctl cat <id> 2>/dev/null
+```
+
+5. Check for existing UX patterns in memory:
+```bash
+npx @claude-flow/cli@latest memory search --query "{feature keywords}" --namespace ux-patterns
 ```
 
 ## Step 1: User Research
@@ -116,12 +121,31 @@ The usability agent will check:
 
 Now that UX artifacts exist, invoke the implementation planner:
 
-```
-/flow-next:plan "<feature request>"
+```bash
+# Option 1: Use Skill tool to invoke flow-next:plan
+Skill("flow-next:plan", args="<feature request>")
 
-Include this context in the plan:
-- UX artifacts location: .flow/ux/{feature-slug}/
-- Link to research, ORCA, wireframes in the epic spec
+# Option 2: Direct flowctl if creating epic
+flowctl add epic \
+  --title "<feature name>" \
+  --description "See .flow/ux/{feature-slug}/ for UX artifacts"
+```
+
+Include this context in the plan prompt:
+```
+UX artifacts location: .flow/ux/{feature-slug}/
+- Research: .flow/ux/{feature-slug}/01-research.md
+- ORCA: .flow/ux/{feature-slug}/02-orca.md
+- Wireframes: .flow/ux/{feature-slug}/03-wireframes.md
+- Writing: .flow/ux/{feature-slug}/04-writing.md
+- Usability: .flow/ux/{feature-slug}/05-usability.md
+
+Use ORCA objects to inform:
+- Objects → Data models / database schema
+- Relationships → Foreign keys / associations
+- CTAs → API endpoints / UI actions
+- Attributes → Component props / UI fields
+- States → State management
 ```
 
 The implementation plan will reference UX artifacts and use ORCA objects to inform technical architecture.
@@ -155,6 +179,21 @@ Step 6: /flow-next:plan
 ```
 
 Total: ~10-15 min vs ~30-45 min for full process.
+
+## Step 8: Store UX Pattern (Optional)
+
+After successful implementation, store the UX pattern for future reference:
+
+```bash
+# Store ORCA pattern for similar future features
+npx @claude-flow/cli@latest memory store \
+  --namespace ux-patterns \
+  --key "{feature-slug}" \
+  --value "Objects: [list]. Key CTAs: [list]. Notable: [insights]" \
+  --tags "ux,orca,{feature-category}"
+```
+
+This enables future `/flow-next:ux-plan` invocations to learn from past patterns.
 
 ## Success Criteria
 
