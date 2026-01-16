@@ -1,4 +1,4 @@
-# UX Plan Steps
+# Flow-Next OOUX Steps
 
 **CRITICAL**: Phases are SEQUENTIAL. Each phase depends on the previous phase's output.
 
@@ -6,7 +6,6 @@
 
 1. Parse arguments:
    - `<spec-file>` - Required path to markdown spec
-   - `--output <dir>` - Optional output directory
    - `--quick` - Optional abbreviated mode
    - `--phase <n>` - Optional single phase
 
@@ -17,16 +16,22 @@ Read(<spec-file-path>)
 
 3. Determine output directory:
 ```bash
-# Default: .ux/{spec-filename-without-ext}/
-# Example: /ux-plan features/dark-mode.md → .ux/dark-mode/
+# Always output to .flow/ux/{spec-filename-without-ext}/
+# Example: /flow-next:ooux SPEC.md → .flow/ux/SPEC/
+# Example: /flow-next:ooux features/dark-mode.md → .flow/ux/dark-mode/
+# Example: /flow-next:ooux .flow/epics/fn-2.md → .flow/ux/fn-2/
 
-# With --output: use specified directory
-# Example: /ux-plan SPEC.md --output docs/ux → docs/ux/
-
-mkdir -p {output-dir}
+mkdir -p .flow/ux/{spec-name}
 ```
 
-4. Extract key info from spec:
+4. Check existing flow context:
+```bash
+# See what epics/tasks exist
+flowctl list epics 2>/dev/null
+flowctl list tasks 2>/dev/null
+```
+
+5. Extract key info from spec:
    - Feature/app name
    - Core functionality described
    - Any existing user info
@@ -42,7 +47,7 @@ Run the research agent:
 Task ux-research-scout(spec content)
 ```
 
-**Wait for completion**, then save to `{output-dir}/01-research.md`
+**Wait for completion**, then save to `.flow/ux/{spec-name}/01-research.md`
 
 The research agent will:
 - Identify target persona (from spec or inferred)
@@ -64,7 +69,7 @@ Run the ORCA agent:
 Task ux-orca-scout(spec content, research output)
 ```
 
-**Wait for completion**, then save to `{output-dir}/02-orca.md`
+**Wait for completion**, then save to `.flow/ux/{spec-name}/02-orca.md`
 
 The ORCA agent produces:
 - **Objects**: Core entities (nouns)
@@ -88,7 +93,7 @@ Run the wireframe agent:
 Task ux-wireframe-scout(spec content, orca output)
 ```
 
-**Wait for completion**, then save to `{output-dir}/03-wireframes.md`
+**Wait for completion**, then save to `.flow/ux/{spec-name}/03-wireframes.md`
 
 The wireframe agent creates:
 - WireMD syntax wireframes for key screens
@@ -109,7 +114,7 @@ Run the writing agent:
 Task ux-writing-scout(spec content, wireframes OR orca)
 ```
 
-**Wait for completion**, then save to `{output-dir}/04-writing.md`
+**Wait for completion**, then save to `.flow/ux/{spec-name}/04-writing.md`
 
 The writing agent produces:
 - Headlines and page titles
@@ -132,7 +137,7 @@ Run the usability agent:
 Task ux-usability-scout(spec content, all previous outputs)
 ```
 
-**Wait for completion**, then save to `{output-dir}/05-usability.md`
+**Wait for completion**, then save to `.flow/ux/{spec-name}/05-usability.md`
 
 The usability agent checks:
 - Nielsen's 10 heuristics
@@ -142,13 +147,13 @@ The usability agent checks:
 
 **Quick mode**: Checklist only, no deep review
 
-## Step 6: Summary
+## Step 6: Summary & Flow-Next Handoff
 
 After all phases complete:
 
 1. **Report output location**:
 ```
-UX artifacts created in {output-dir}/:
+UX artifacts created in .flow/ux/{spec-name}/:
 - 01-research.md
 - 02-orca.md
 - 03-wireframes.md (if not skipped)
@@ -158,13 +163,31 @@ UX artifacts created in {output-dir}/:
 
 2. **Highlight critical findings**:
    - Any critical usability issues
-   - Key objects identified
+   - Key ORCA objects identified
    - Main user flows
 
-3. **Suggest next steps**:
-   - Review artifacts
-   - Address critical issues
-   - Use ORCA for implementation planning
+3. **Flow-Next handoff**:
+```
+Ready for implementation planning.
+
+Next steps:
+  /flow-next:plan "Feature X"
+  # Will automatically reference .flow/ux/{spec-name}/
+
+Or review artifacts first:
+  Read .flow/ux/{spec-name}/02-orca.md  # Key objects/CTAs
+  Read .flow/ux/{spec-name}/05-usability.md  # Issues to address
+```
+
+4. **ORCA → Architecture guidance**:
+```
+Use ORCA output to inform /flow-next:plan:
+- Objects → Data models, TypeScript types
+- Relationships → DB schema, API structure
+- CTAs → Endpoints, mutations, UI actions
+- Attributes → Props, form fields
+- States → State management
+```
 
 ## Single Phase Mode
 
@@ -207,10 +230,19 @@ Before completing:
 ## Output Structure
 
 ```
-{output-dir}/
-├── 01-research.md      # Persona, JTBD, flows, edge cases, metrics
-├── 02-orca.md          # Objects, Relationships, CTAs, Attributes, States
-├── 03-wireframes.md    # WireMD layouts, state variations, responsive
-├── 04-writing.md       # Headlines, CTAs, errors, empty states, microcopy
-└── 05-usability.md     # Heuristics, accessibility, issues, recommendations
+.flow/
+├── epics/                    # flow-next epics (existing)
+├── tasks/                    # flow-next tasks (existing)
+└── ux/                       # OOUX artifacts (this skill)
+    └── {spec-name}/
+        ├── 01-research.md    # Persona, JTBD, flows, edge cases, metrics
+        ├── 02-orca.md        # Objects, Relationships, CTAs, Attributes, States
+        ├── 03-wireframes.md  # WireMD layouts, state variations, responsive
+        ├── 04-writing.md     # Headlines, CTAs, errors, empty states, microcopy
+        └── 05-usability.md   # Heuristics, accessibility, issues, recommendations
 ```
+
+This structure integrates with flow-next:
+- `/flow-next:plan` reads from `.flow/ux/` for UX context
+- `/flow-next:work` can reference UX artifacts during implementation
+- Epics can link to UX artifacts in their specs

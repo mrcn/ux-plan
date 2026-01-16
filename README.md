@@ -1,114 +1,132 @@
-# UX Plan
+# Flow-Next OOUX
 
-A Claude Code skill that applies ORCA UX methodology to any spec file. Takes a markdown file (feature, app, PRD) and generates structured UX artifacts.
+A flow-next skill that applies ORCA/OOUX methodology to spec files. Generates UX artifacts in `.flow/ux/` for use by `flow-next:plan` and `flow-next:work`.
 
 ## Installation
 
 ```bash
-# Project-level (recommended)
-git clone https://github.com/mrcn/ux-plan .claude/skills/ux-plan
+# Project-level
+git clone https://github.com/mrcn/ux-plan .claude/skills/flow-next-ooux
 
-# Global (all projects)
-git clone https://github.com/mrcn/ux-plan ~/.claude/skills/ux-plan
+# Global
+git clone https://github.com/mrcn/ux-plan ~/.claude/skills/flow-next-ooux
 ```
 
 ## Usage
 
 ```bash
-/ux-plan <spec-file.md>
-/ux-plan <spec-file.md> --quick
-/ux-plan <spec-file.md> --output <dir>
+/flow-next:ooux <spec-file.md>
+/flow-next:ooux <spec-file.md> --quick
 ```
 
 Examples:
 ```bash
-/ux-plan SPEC.md                           # Analyze app spec
-/ux-plan features/dark-mode.md             # Analyze feature
-/ux-plan PRD.md --output docs/ux           # Custom output dir
-/ux-plan specs/onboarding.md --quick       # Quick mode
+/flow-next:ooux SPEC.md                    # Full app spec
+/flow-next:ooux PRD.md                     # Product requirements
+/flow-next:ooux .flow/epics/fn-2.md        # Specific epic
+/flow-next:ooux features/onboarding.md --quick
 ```
 
 ## What It Does
 
-Reads any markdown spec and runs 5 sequential UX phases:
+Reads spec file → runs 5 UX phases → outputs to `.flow/ux/` → ready for flow-next:plan
 
 ```
 [Spec File] → Research → ORCA → Wireframes → Writing → Usability
-                ↓          ↓         ↓          ↓          ↓
-              who/why    O-R-C-A   WireMD     copy      validate
+                                    ↓
+                            .flow/ux/{name}/
+                                    ↓
+                          /flow-next:plan (uses artifacts)
+                                    ↓
+                          /flow-next:work (implements)
 ```
 
 ## Output
 
-Default: `.ux/{spec-name}/`
-
 ```
-.ux/
-└── dark-mode/
-    ├── 01-research.md      # Persona, goals, flows, metrics
-    ├── 02-orca.md          # Objects, Relationships, CTAs, Attributes
-    ├── 03-wireframes.md    # WireMD layouts + state variations
-    ├── 04-writing.md       # All copy, errors, empty states
-    └── 05-usability.md     # Heuristics, accessibility, issues
+.flow/
+├── epics/           # flow-next epics
+├── tasks/           # flow-next tasks
+└── ux/              # OOUX artifacts
+    └── {spec-name}/
+        ├── 01-research.md
+        ├── 02-orca.md
+        ├── 03-wireframes.md
+        ├── 04-writing.md
+        └── 05-usability.md
+```
+
+## The 5 Phases
+
+### 1. Research
+- Target persona (who)
+- Jobs-to-be-done (why)
+- Happy path flow
+- Edge cases, success metrics
+
+### 2. ORCA Analysis
+
+| Component | What | Example |
+|-----------|------|---------|
+| **Objects** | Nouns | Book, User, Order |
+| **Relationships** | Connections | User has many Books |
+| **CTAs** | Verbs | Upload, Delete, Play |
+| **Attributes** | Properties | Title, Duration |
+| **States** | Conditions | loading, error, empty |
+
+### 3. Wireframes (WireMD)
+```wiremd
+[[ Logo | Library | Settings ]]
+# My Books
+[Search___] [Filter v]
+| Title | Author | [Play] |
+[Upload New Book]
+```
+
+### 4. UX Writing
+- Headlines, CTA labels
+- Error messages, empty states
+- Microcopy, tooltips
+
+### 5. Usability
+- Nielsen's 10 heuristics
+- WCAG 2.1 AA
+- Critical issues flagged
+
+## Flow-Next Integration
+
+### ORCA → Implementation
+
+`/flow-next:plan` uses ORCA to inform architecture:
+
+| ORCA | Technical Decision |
+|------|-------------------|
+| Objects | Data models, DB tables, types |
+| Relationships | Foreign keys, API nesting |
+| CTAs | Endpoints, mutations, actions |
+| Attributes | Props, form fields, columns |
+| States | State machine, UI states |
+
+### Workflow
+
+```bash
+# 1. Run OOUX on your spec
+/flow-next:ooux SPEC.md
+
+# 2. Plan implementation (auto-references .flow/ux/)
+/flow-next:plan "Build the app"
+
+# 3. Execute
+/flow-next:work fn-1
 ```
 
 ## Options
 
 | Flag | Description |
 |------|-------------|
-| `--quick` | Abbreviated (~15 min vs ~45 min) |
-| `--output <dir>` | Custom output directory |
-| `--phase <n>` | Run single phase (1-5) |
+| `--quick` | ~15 min vs ~45 min |
+| `--phase <n>` | Single phase (1-5) |
 | `--skip-wireframes` | Skip phase 3 |
-
-## The 5 Phases
-
-### 1. Research
-- Target persona
-- Jobs-to-be-done
-- Happy path flow
-- Edge cases
-- Success metrics
-
-### 2. ORCA Analysis
-
-| Component | What | Example |
-|-----------|------|---------|
-| **Objects** | Nouns users interact with | Book, User, Order |
-| **Relationships** | How objects connect | User has many Books |
-| **CTAs** | Actions per object | Upload, Delete, Play |
-| **Attributes** | Visible properties | Title, Duration, Status |
-| **States** | Per-object states | loading, error, empty |
-
-### 3. Wireframes (WireMD)
-
-```wiremd
-[[ Logo | Library | Settings | Sign Out ]]
-
-# My Books
-
-[Search_______] [Filter v]
-
-| Title | Author | Actions |
-| Book 1 | Author A | [Play] |
-
-[Upload New Book]
-```
-
-Includes: state variations, responsive notes, interaction notes
-
-### 4. UX Writing
-- Headlines, page titles
-- CTA labels (verb-first)
-- Error messages
-- Empty states
-- Microcopy, tooltips
-
-### 5. Usability
-- Nielsen's 10 heuristics
-- WCAG 2.1 AA accessibility
-- Edge case coverage
-- Critical/major/minor issues
 
 ## Quick Mode
 
@@ -116,38 +134,26 @@ Includes: state variations, responsive notes, interaction notes
 |-------|------|-------|
 | Research | Full | Goals + happy path |
 | ORCA | Full | Full (always) |
-| Wireframes | All screens | **Skipped** |
-| Writing | All copy | CTAs + errors |
+| Wireframes | All | **Skipped** |
+| Writing | All | CTAs + errors |
 | Usability | Full | Checklist only |
 
-## Use Cases
+## When to Use
 
-| Input | Use For |
-|-------|---------|
-| `SPEC.md` | Full app UX |
-| `features/X.md` | Single feature |
-| `PRD.md` | Product requirements |
-| `epic.md` | Implementation phase |
-| `story.md` | User story scope |
-
-## ORCA → Implementation
-
-Use ORCA output to inform technical architecture:
-
-| ORCA | Implementation |
-|------|----------------|
-| Objects | Data models, DB tables |
-| Relationships | Foreign keys, associations |
-| CTAs | API endpoints, UI actions |
-| Attributes | Component props, form fields |
-| States | State management |
+| `/flow-next:ooux` first | `/flow-next:plan` directly |
+|------------------------|---------------------------|
+| New features | Bug fixes |
+| User-facing changes | Refactors |
+| New screens/flows | Backend-only |
+| Redesigns | Config changes |
+| PRD → Implementation | Technical debt |
 
 ## File Structure
 
 ```
-ux-plan/
-├── SKILL.md              # Skill definition
-├── steps.md              # Phase instructions
+flow-next-ooux/
+├── SKILL.md
+├── steps.md
 ├── agents/
 │   ├── ux-research-scout.md
 │   ├── ux-orca-scout.md
@@ -155,47 +161,11 @@ ux-plan/
 │   ├── ux-writing-scout.md
 │   └── ux-usability-scout.md
 └── resources/templates/
-    ├── research.md
-    ├── orca.md
-    ├── wireframes.md
-    ├── writing.md
-    └── usability.md
-```
-
-## Integration
-
-Works standalone or with other tools:
-
-```bash
-# Standalone
-/ux-plan SPEC.md
-# Creates .ux/SPEC/
-
-# With flow-next
-/ux-plan .flow/epics/fn-1.md --output .flow/ux/fn-1
-/flow-next:plan "Feature X"  # References .flow/ux/
-
-# With any planning tool
-# Just point to .ux/{name}/ artifacts
-```
-
-## WireMD Reference
-
-```wiremd
-[[ Nav | Items | Here ]]     # Navigation bar
-# Page Title                  # Heading
-[Button Label]               # Button
-[Input placeholder___]       # Text input
-[ ] Unchecked  [x] Checked   # Checkboxes
-( ) Unselected (x) Selected  # Radio buttons
-| Col | Col |                # Table
-| Data | Data |
----                          # Divider
 ```
 
 ## Background
 
-ORCA (Object-Oriented UX) methodology by Sophia Voychehovski. Bridges UX design and information architecture by defining the structural foundation (objects, relationships, actions, attributes) before visual design.
+ORCA = Object-Oriented UX by Sophia Voychehovski. Defines structural foundation (objects, relationships, actions, attributes) before visual design, bridging UX and information architecture.
 
 ## License
 
