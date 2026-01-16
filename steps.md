@@ -1,96 +1,117 @@
-# UX Plan Steps (Flow-Next Integration)
+# UX Plan Steps
 
 **CRITICAL**: Phases are SEQUENTIAL. Each phase depends on the previous phase's output.
 
 ## Step 0: Initialize
 
-1. Parse the feature request from $ARGUMENTS
-2. Generate a slug from the feature name (e.g., "dark-mode-toggle")
-3. Create the UX artifact directory:
+1. Parse arguments:
+   - `<spec-file>` - Required path to markdown spec
+   - `--output <dir>` - Optional output directory
+   - `--quick` - Optional abbreviated mode
+   - `--phase <n>` - Optional single phase
 
+2. Read the spec file:
 ```bash
-mkdir -p .flow/ux/{feature-slug}
+Read(<spec-file-path>)
 ```
 
-4. If input is a Flow ID (fn-N), fetch existing context:
+3. Determine output directory:
 ```bash
-flowctl show <id> --json 2>/dev/null
-flowctl cat <id> 2>/dev/null
+# Default: .ux/{spec-filename-without-ext}/
+# Example: /ux-plan features/dark-mode.md → .ux/dark-mode/
+
+# With --output: use specified directory
+# Example: /ux-plan SPEC.md --output docs/ux → docs/ux/
+
+mkdir -p {output-dir}
 ```
 
-5. Check for existing UX patterns in memory:
-```bash
-npx @claude-flow/cli@latest memory search --query "{feature keywords}" --namespace ux-patterns
-```
+4. Extract key info from spec:
+   - Feature/app name
+   - Core functionality described
+   - Any existing user info
 
 ## Step 1: User Research
 
-**Purpose**: Understand WHO the user is and WHY they need this feature.
+**Purpose**: Understand WHO the user is and WHY they need this.
+
+**Input**: Spec file content
 
 Run the research agent:
 ```
-Task ux-research-scout(<feature request>)
+Task ux-research-scout(spec content)
 ```
 
-**Wait for completion**, then save output to `.flow/ux/{feature-slug}/01-research.md`
+**Wait for completion**, then save to `{output-dir}/01-research.md`
 
 The research agent will:
-- Identify target persona (from PRD or inferred)
+- Identify target persona (from spec or inferred)
 - Define jobs-to-be-done and user goals
-- Map the happy path flow (step-by-step)
+- Map the happy path flow
 - Identify edge cases and error scenarios
 - Define success metrics
 
+**Quick mode**: Goals + happy path only
+
 ## Step 2: ORCA Analysis
 
-**Purpose**: Define the OBJECTS users interact with and their structure.
+**Purpose**: Define the OBJECTS users interact with.
 
-Run the ORCA agent with research context:
+**Input**: Spec content + 01-research.md
+
+Run the ORCA agent:
 ```
-Task ux-orca-scout(<feature request>, <01-research.md content>)
+Task ux-orca-scout(spec content, research output)
 ```
 
-**Wait for completion**, then save output to `.flow/ux/{feature-slug}/02-orca.md`
+**Wait for completion**, then save to `{output-dir}/02-orca.md`
 
-The ORCA agent will produce:
+The ORCA agent produces:
 - **Objects**: Core entities (nouns)
 - **Relationships**: How objects connect
 - **CTAs**: Actions per object (verbs)
 - **Attributes**: Data/properties per object
+- **States**: Per-object state inventory
 
-Output format: ASCII diagram + markdown matrix table
+Output format: ASCII diagram + markdown matrix tables
+
+**Quick mode**: Full (ORCA is always full)
 
 ## Step 3: Wireframes
 
 **Purpose**: Visualize screen layouts based on ORCA objects.
 
-Run the wireframe agent with ORCA context:
+**Input**: Spec content + 02-orca.md
+
+Run the wireframe agent:
 ```
-Task ux-wireframe-scout(<feature request>, <02-orca.md content>)
+Task ux-wireframe-scout(spec content, orca output)
 ```
 
-**Wait for completion**, then save output to `.flow/ux/{feature-slug}/03-wireframes.md`
+**Wait for completion**, then save to `{output-dir}/03-wireframes.md`
 
-The wireframe agent will create:
+The wireframe agent creates:
 - WireMD syntax wireframes for key screens
 - Layout of objects and CTAs on screen
 - State variations (empty, loading, error, success)
 - Responsive breakpoint notes
 
-**Skip in --quick mode**
+**Skip in --quick mode or with --skip-wireframes**
 
 ## Step 4: UX Writing
 
 **Purpose**: Define all copy, labels, and messages.
 
-Run the writing agent with wireframe context:
+**Input**: Spec content + wireframes (or ORCA if skipped)
+
+Run the writing agent:
 ```
-Task ux-writing-scout(<feature request>, <03-wireframes.md content OR 02-orca.md if quick mode>)
+Task ux-writing-scout(spec content, wireframes OR orca)
 ```
 
-**Wait for completion**, then save output to `.flow/ux/{feature-slug}/04-writing.md`
+**Wait for completion**, then save to `{output-dir}/04-writing.md`
 
-The writing agent will produce:
+The writing agent produces:
 - Headlines and page titles
 - CTA button labels
 - Error messages
@@ -98,108 +119,98 @@ The writing agent will produce:
 - Microcopy (helper text, tooltips)
 - Onboarding text (if applicable)
 
+**Quick mode**: CTAs + error messages only
+
 ## Step 5: Usability Checklist
 
 **Purpose**: Validate the design against heuristics and accessibility.
 
-Run the usability agent with all previous outputs:
+**Input**: Spec content + all previous outputs
+
+Run the usability agent:
 ```
-Task ux-usability-scout(<feature request>, <all previous outputs>)
+Task ux-usability-scout(spec content, all previous outputs)
 ```
 
-**Wait for completion**, then save output to `.flow/ux/{feature-slug}/05-usability.md`
+**Wait for completion**, then save to `{output-dir}/05-usability.md`
 
-The usability agent will check:
+The usability agent checks:
 - Nielsen's 10 heuristics
 - WCAG 2.1 AA accessibility
 - Edge case coverage
 - Open questions for stakeholders
 
-**Abbreviated in --quick mode** (checklist only, no deep review)
+**Quick mode**: Checklist only, no deep review
 
-## Step 6: Invoke flow-next:plan
+## Step 6: Summary
 
-Now that UX artifacts exist, invoke the implementation planner:
+After all phases complete:
 
-```bash
-# Option 1: Use Skill tool to invoke flow-next:plan
-Skill("flow-next:plan", args="<feature request>")
-
-# Option 2: Direct flowctl if creating epic
-flowctl add epic \
-  --title "<feature name>" \
-  --description "See .flow/ux/{feature-slug}/ for UX artifacts"
+1. **Report output location**:
+```
+UX artifacts created in {output-dir}/:
+- 01-research.md
+- 02-orca.md
+- 03-wireframes.md (if not skipped)
+- 04-writing.md
+- 05-usability.md
 ```
 
-Include this context in the plan prompt:
-```
-UX artifacts location: .flow/ux/{feature-slug}/
-- Research: .flow/ux/{feature-slug}/01-research.md
-- ORCA: .flow/ux/{feature-slug}/02-orca.md
-- Wireframes: .flow/ux/{feature-slug}/03-wireframes.md
-- Writing: .flow/ux/{feature-slug}/04-writing.md
-- Usability: .flow/ux/{feature-slug}/05-usability.md
+2. **Highlight critical findings**:
+   - Any critical usability issues
+   - Key objects identified
+   - Main user flows
 
-Use ORCA objects to inform:
-- Objects → Data models / database schema
-- Relationships → Foreign keys / associations
-- CTAs → API endpoints / UI actions
-- Attributes → Component props / UI fields
-- States → State management
-```
+3. **Suggest next steps**:
+   - Review artifacts
+   - Address critical issues
+   - Use ORCA for implementation planning
 
-The implementation plan will reference UX artifacts and use ORCA objects to inform technical architecture.
+## Single Phase Mode
 
-## Step 7: Link Artifacts
-
-After `/flow-next:plan` creates the epic, ensure the epic spec links to UX:
-
-```markdown
-## UX Artifacts
-
-See `.flow/ux/{feature-slug}/` for:
-- [Research](../ux/{feature-slug}/01-research.md)
-- [ORCA](../ux/{feature-slug}/02-orca.md)
-- [Wireframes](../ux/{feature-slug}/03-wireframes.md)
-- [Writing](../ux/{feature-slug}/04-writing.md)
-- [Usability](../ux/{feature-slug}/05-usability.md)
-```
-
-## Quick Mode Flow
-
-When `--quick` flag is present:
+With `--phase <n>`, run only that phase:
 
 ```
-Step 1: Research (abbreviated - goals + happy path only)
-Step 2: ORCA (full)
-Step 3: SKIP wireframes
-Step 4: Writing (CTAs + errors only)
-Step 5: Usability (checklist only)
-Step 6: /flow-next:plan
+/ux-plan SPEC.md --phase 2
+# Runs only ORCA analysis
+# Still needs previous phases to exist
 ```
 
-Total: ~10-15 min vs ~30-45 min for full process.
+Phase dependencies:
+- Phase 1: No dependencies
+- Phase 2: Needs 01-research.md
+- Phase 3: Needs 02-orca.md
+- Phase 4: Needs 03-wireframes.md (or 02-orca.md)
+- Phase 5: Needs all previous
 
-## Step 8: Store UX Pattern (Optional)
+## Quick Mode Summary
 
-After successful implementation, store the UX pattern for future reference:
+| Phase | Full | Quick |
+|-------|------|-------|
+| 1. Research | Full persona, flows, metrics | Goals + happy path |
+| 2. ORCA | Full | Full (always) |
+| 3. Wireframes | All screens + states | **SKIPPED** |
+| 4. Writing | All copy categories | CTAs + errors only |
+| 5. Usability | Full heuristics + a11y | Checklist only |
 
-```bash
-# Store ORCA pattern for similar future features
-npx @claude-flow/cli@latest memory store \
-  --namespace ux-patterns \
-  --key "{feature-slug}" \
-  --value "Objects: [list]. Key CTAs: [list]. Notable: [insights]" \
-  --tags "ux,orca,{feature-category}"
-```
-
-This enables future `/flow-next:ux-plan` invocations to learn from past patterns.
+Time: ~15 min (quick) vs ~45 min (full)
 
 ## Success Criteria
 
-Before moving to `/flow-next:plan`:
+Before completing:
 - [ ] Research identifies clear persona and goals
 - [ ] ORCA defines all objects and CTAs
-- [ ] Wireframes show key screens (unless --quick)
+- [ ] Wireframes show key screens (unless skipped)
 - [ ] Writing covers all user-facing copy
 - [ ] Usability finds no critical issues
+
+## Output Structure
+
+```
+{output-dir}/
+├── 01-research.md      # Persona, JTBD, flows, edge cases, metrics
+├── 02-orca.md          # Objects, Relationships, CTAs, Attributes, States
+├── 03-wireframes.md    # WireMD layouts, state variations, responsive
+├── 04-writing.md       # Headlines, CTAs, errors, empty states, microcopy
+└── 05-usability.md     # Heuristics, accessibility, issues, recommendations
+```

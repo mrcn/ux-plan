@@ -1,124 +1,144 @@
 ---
-name: flow-next-ux-plan
-description: "UX-first feature planning with ORCA methodology. Runs research → ORCA (objects/relationships/CTAs/attributes) → wireframes → writing → usability, then auto-invokes /flow-next:plan. Use for NEW FEATURES instead of /flow-next:plan. Triggers on /flow-next:ux-plan."
+name: ux-plan
+description: "Apply ORCA UX methodology to any spec file. Takes a markdown file (feature spec, app spec, PRD) and generates research, ORCA analysis, wireframes, writing, and usability artifacts. Use when starting UX work on any spec."
 ---
 
-# UX Plan (Flow-Next Integration)
+# UX Plan
 
-Plan features with complete UX process before implementation. Enforces UX thinking by running 5 sequential phases, creating artifacts in `.flow/ux/`, then invoking `/flow-next:plan` with full UX context.
+Apply structured UX process to any specification file. Works on features, apps, PRDs, or any markdown describing what to build.
 
 ## Input
 
-Full request: $ARGUMENTS
-
-Accepts:
-- Feature description in natural language
-- Existing Flow ID to add UX artifacts to
+```
+/ux-plan <path-to-spec.md>
+/ux-plan <path-to-spec.md> --quick
+/ux-plan <path-to-spec.md> --output <output-dir>
+```
 
 Examples:
 ```
-/flow-next:ux-plan Add dark mode toggle to settings
-/flow-next:ux-plan User onboarding flow with tutorial
-/flow-next:ux-plan fn-1   # add UX to existing epic
+/ux-plan specs/dark-mode.md
+/ux-plan SPEC.md --output .flow/ux/app
+/ux-plan features/onboarding.md --quick
+/ux-plan PRD.md
 ```
 
-If empty, ask: "What feature should I plan? Describe it in 1-3 sentences."
+If no file provided, ask: "What spec file should I analyze? Provide a path to a markdown file."
+
+## What It Does
+
+Reads the spec file and runs 5 sequential UX phases:
+
+```
+[Spec File] → Research → ORCA → Wireframes → Writing → Usability → [UX Artifacts]
+                ↓          ↓         ↓          ↓          ↓
+              who/why    O-R-C-A   WireMD     copy      validate
+```
 
 ## Workflow
 
-Follow [steps.md](steps.md) exactly. Each phase is **sequential** - outputs feed into next.
+Follow [steps.md](steps.md) exactly. Each phase is **sequential**.
 
+### Step 0: Read Spec
+
+```bash
+# Read the input spec file
+Read(<spec-file-path>)
+
+# Determine output directory
+# Default: .ux/{spec-filename-without-ext}/
+# Or use --output flag
 ```
-Research → ORCA → Wireframes → Writing → Usability → /flow-next:plan
-   ↓         ↓         ↓          ↓          ↓
- who/why   O-R-C-A   WireMD     copy      validate
-```
 
-## Agents
+### Step 1-5: Run Phases
 
-Run each agent sequentially using Task tool:
+Each phase agent receives:
+1. The full spec file content
+2. Previous phase outputs
 
-| Phase | Agent | Input |
-|-------|-------|-------|
-| 1 | `flow-next:ux-research-scout` | Feature request |
-| 2 | `flow-next:ux-orca-scout` | Feature + 01-research.md |
-| 3 | `flow-next:ux-wireframe-scout` | Feature + 02-orca.md |
-| 4 | `flow-next:ux-writing-scout` | Feature + 03-wireframes.md |
-| 5 | `flow-next:ux-usability-scout` | Feature + all artifacts |
+See [steps.md](steps.md) for detailed phase instructions.
 
 ## Output
 
-All UX artifacts go into `.flow/ux/{feature-slug}/`:
+Default output: `.ux/{spec-name}/`
+
 ```
-.flow/
-└── ux/
-    └── {feature-slug}/
-        ├── 01-research.md      # Persona, goals, flows, metrics
-        ├── 02-orca.md          # Objects, Relationships, CTAs, Attributes
-        ├── 03-wireframes.md    # WireMD syntax wireframes
-        ├── 04-writing.md       # Copy, errors, empty states
-        └── 05-usability.md     # Heuristics, a11y, edge cases
-```
-
-After UX phases complete, `/flow-next:plan` is invoked automatically with UX context.
-
-## Flow-Next Integration
-
-### Before UX Plan
-```bash
-# Check if Flow ID provided
-flowctl show fn-1 --json 2>/dev/null
-flowctl cat fn-1 2>/dev/null
+.ux/
+└── {spec-name}/
+    ├── 01-research.md      # Persona, goals, flows, metrics
+    ├── 02-orca.md          # Objects, Relationships, CTAs, Attributes
+    ├── 03-wireframes.md    # WireMD syntax wireframes
+    ├── 04-writing.md       # Copy, errors, empty states
+    └── 05-usability.md     # Heuristics, a11y, edge cases
 ```
 
-### After UX Complete
-```bash
-# Create epic with UX artifacts linked
-flowctl add epic --title "Feature Name" --spec .flow/ux/{slug}/
-
-# Or invoke /flow-next:plan which will detect UX artifacts
+Custom output with `--output`:
+```
+/ux-plan SPEC.md --output docs/ux
+# Creates docs/ux/01-research.md, etc.
 ```
 
-### Memory Integration
-```bash
-# Store successful UX pattern for future reference
-npx @claude-flow/cli@latest memory store \
-  --namespace ux-patterns \
-  --key "{feature-slug}" \
-  --value "ORCA objects: X, Y, Z. Key insight: ..."
-```
+## Options
 
-## When to Use
-
-| Use `/flow-next:ux-plan` for | Use `/flow-next:plan` for |
-|-----------------------------|--------------------------|
-| New features | Bug fixes |
-| User-facing changes | Refactors |
-| New screens/flows | Backend changes |
-| Redesigns | Config changes |
-| UI/UX improvements | API changes |
+| Flag | Description |
+|------|-------------|
+| `--quick` | Abbreviated process (~15 min vs ~45 min) |
+| `--output <dir>` | Custom output directory |
+| `--phase <n>` | Run single phase (1-5) |
+| `--skip-wireframes` | Skip phase 3 |
 
 ## Quick Mode
 
-For smaller features, use `--quick`:
-```
-/flow-next:ux-plan --quick "Add logout button"
-```
-
-Quick mode runs abbreviated process:
+`--quick` runs abbreviated process:
 - Research: Goals + happy path only
-- ORCA: Full
+- ORCA: Full (always full)
 - Wireframes: **SKIPPED**
 - Writing: CTAs + errors only
 - Usability: Checklist only
 
-Time: ~15 min vs ~45 min for full process.
+## Use Cases
+
+| Input | Output |
+|-------|--------|
+| Feature spec | UX for single feature |
+| App SPEC.md | UX for entire app |
+| PRD | UX from product requirements |
+| Epic spec | UX for implementation phase |
+| User story | UX for story scope |
+
+## Integration (Optional)
+
+After UX artifacts exist, you can:
+
+```bash
+# Use with flow-next
+/flow-next:plan "Feature X"
+# Plan will detect and reference .ux/ artifacts
+
+# Use with any planning tool
+# Just reference the .ux/{name}/ directory
+
+# Store patterns for future
+npx @claude-flow/cli@latest memory store \
+  --namespace ux-patterns \
+  --key "{feature}" \
+  --value "ORCA: ..."
+```
+
+## Agents
+
+| Phase | Agent | Purpose |
+|-------|-------|---------|
+| 1 | `ux-research-scout` | Who/why analysis |
+| 2 | `ux-orca-scout` | Objects, Relationships, CTAs, Attributes |
+| 3 | `ux-wireframe-scout` | WireMD layouts |
+| 4 | `ux-writing-scout` | All copy |
+| 5 | `ux-usability-scout` | Validation |
 
 ## Success Criteria
 
-Before moving to `/flow-next:plan`:
 - [ ] Research identifies clear persona and goals
 - [ ] ORCA defines all objects and CTAs
-- [ ] Wireframes show key screens (unless --quick)
+- [ ] Wireframes show key screens (unless skipped)
 - [ ] Writing covers all user-facing copy
 - [ ] Usability finds no critical issues

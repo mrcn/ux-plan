@@ -1,89 +1,86 @@
-# UX Plan (Flow-Next Skill)
+# UX Plan
 
-A Claude Code skill for UX-first feature planning using ORCA methodology. Integrates with flow-next for seamless implementation planning.
+A Claude Code skill that applies ORCA UX methodology to any spec file. Takes a markdown file (feature, app, PRD) and generates structured UX artifacts.
 
 ## Installation
 
-### As Flow-Next Skill (Recommended)
-
 ```bash
-# Clone into your project's .claude/skills directory
-git clone https://github.com/mrcn/ux-plan .claude/skills/flow-next-ux-plan
+# Project-level (recommended)
+git clone https://github.com/mrcn/ux-plan .claude/skills/ux-plan
 
-# Or global installation (available in all projects)
-git clone https://github.com/mrcn/ux-plan ~/.claude/skills/flow-next-ux-plan
-```
-
-### Verify Installation
-
-Restart Claude Code, then:
-```
-/flow-next:ux-plan --help
+# Global (all projects)
+git clone https://github.com/mrcn/ux-plan ~/.claude/skills/ux-plan
 ```
 
 ## Usage
 
 ```bash
-# Plan a new feature with full UX process
-/flow-next:ux-plan Add dark mode toggle to settings
+/ux-plan <spec-file.md>
+/ux-plan <spec-file.md> --quick
+/ux-plan <spec-file.md> --output <dir>
+```
 
-# Add UX to existing Flow epic
-/flow-next:ux-plan fn-1
-
-# Quick mode (~15 min vs ~45 min)
-/flow-next:ux-plan --quick Add logout button
+Examples:
+```bash
+/ux-plan SPEC.md                           # Analyze app spec
+/ux-plan features/dark-mode.md             # Analyze feature
+/ux-plan PRD.md --output docs/ux           # Custom output dir
+/ux-plan specs/onboarding.md --quick       # Quick mode
 ```
 
 ## What It Does
 
-Runs 5 sequential phases before invoking `/flow-next:plan`:
+Reads any markdown spec and runs 5 sequential UX phases:
 
 ```
-Research → ORCA → Wireframes → Writing → Usability → /flow-next:plan
-   ↓         ↓         ↓          ↓          ↓
- who/why   O-R-C-A   WireMD     copy      validate
+[Spec File] → Research → ORCA → Wireframes → Writing → Usability
+                ↓          ↓         ↓          ↓          ↓
+              who/why    O-R-C-A   WireMD     copy      validate
 ```
 
-## When to Use
+## Output
 
-| Use `/flow-next:ux-plan` | Use `/flow-next:plan` |
-|--------------------------|----------------------|
-| New features | Bug fixes |
-| User-facing changes | Refactors |
-| New screens/flows | Backend changes |
-| Redesigns | Config changes |
+Default: `.ux/{spec-name}/`
+
+```
+.ux/
+└── dark-mode/
+    ├── 01-research.md      # Persona, goals, flows, metrics
+    ├── 02-orca.md          # Objects, Relationships, CTAs, Attributes
+    ├── 03-wireframes.md    # WireMD layouts + state variations
+    ├── 04-writing.md       # All copy, errors, empty states
+    └── 05-usability.md     # Heuristics, accessibility, issues
+```
+
+## Options
+
+| Flag | Description |
+|------|-------------|
+| `--quick` | Abbreviated (~15 min vs ~45 min) |
+| `--output <dir>` | Custom output directory |
+| `--phase <n>` | Run single phase (1-5) |
+| `--skip-wireframes` | Skip phase 3 |
 
 ## The 5 Phases
 
-### Phase 1: Research
+### 1. Research
+- Target persona
+- Jobs-to-be-done
+- Happy path flow
+- Edge cases
+- Success metrics
 
-Identifies:
-- **Target persona** - who, context, expertise
-- **Jobs-to-be-done** - main, related, emotional
-- **Happy path** - step-by-step ideal flow
-- **Edge cases** - errors, empty, loading
-- **Success metrics** - measurable outcomes
+### 2. ORCA Analysis
 
-Output: `.flow/ux/{feature}/01-research.md`
+| Component | What | Example |
+|-----------|------|---------|
+| **Objects** | Nouns users interact with | Book, User, Order |
+| **Relationships** | How objects connect | User has many Books |
+| **CTAs** | Actions per object | Upload, Delete, Play |
+| **Attributes** | Visible properties | Title, Duration, Status |
+| **States** | Per-object states | loading, error, empty |
 
-### Phase 2: ORCA Analysis
-
-ORCA = Object-Oriented UX:
-
-| Component | Definition | Example |
-|-----------|------------|---------|
-| **Objects** | Nouns users interact with | Book, Chapter, User |
-| **Relationships** | How objects connect | Book has many Chapters |
-| **CTAs** | Verbs/actions per object | Upload, Delete, Play |
-| **Attributes** | Visible data/properties | Title, Author, Duration |
-
-Plus **State Inventory** (loading, error, empty, success).
-
-Output: `.flow/ux/{feature}/02-orca.md`
-
-### Phase 3: Wireframes
-
-Uses WireMD syntax (markdown wireframing):
+### 3. Wireframes (WireMD)
 
 ```wiremd
 [[ Logo | Library | Settings | Sign Out ]]
@@ -98,101 +95,59 @@ Uses WireMD syntax (markdown wireframing):
 [Upload New Book]
 ```
 
-Includes state variations + responsive notes.
+Includes: state variations, responsive notes, interaction notes
 
-Output: `.flow/ux/{feature}/03-wireframes.md`
-
-*Skipped in `--quick` mode*
-
-### Phase 4: UX Writing
-
-Defines all copy:
+### 4. UX Writing
 - Headlines, page titles
 - CTA labels (verb-first)
-- Error messages (what + how to fix)
+- Error messages
 - Empty states
-- Microcopy, tooltips, confirmations
+- Microcopy, tooltips
 
-Output: `.flow/ux/{feature}/04-writing.md`
-
-### Phase 5: Usability
-
-Validates against:
-- **Nielsen's 10 Heuristics**
-- **WCAG 2.1 AA** accessibility
-- Edge case coverage from research
-
-Output: `.flow/ux/{feature}/05-usability.md`
-
-## Output Structure
-
-```
-.flow/
-└── ux/
-    └── {feature-slug}/
-        ├── 01-research.md
-        ├── 02-orca.md
-        ├── 03-wireframes.md
-        ├── 04-writing.md
-        └── 05-usability.md
-```
-
-## Flow-Next Integration
-
-### ORCA → Implementation Mapping
-
-| ORCA | Implementation |
-|------|----------------|
-| Objects | Data models, database tables |
-| Relationships | Foreign keys, associations |
-| CTAs | API endpoints, UI actions |
-| Attributes | Component props, form fields |
-| States | State management, UI states |
-
-### Memory Integration
-
-Stores successful UX patterns for future reference:
-
-```bash
-# After successful feature, pattern is stored
-npx @claude-flow/cli@latest memory store \
-  --namespace ux-patterns \
-  --key "dark-mode" \
-  --value "Objects: Theme, Preference. CTAs: Toggle, Reset."
-
-# Future invocations search for similar patterns
-npx @claude-flow/cli@latest memory search \
-  --query "theme settings" \
-  --namespace ux-patterns
-```
-
-### Flowctl Integration
-
-```bash
-# Check existing epic context
-flowctl show fn-1 --json
-flowctl cat fn-1
-
-# Create epic with UX artifacts
-flowctl add epic --title "Feature" --spec .flow/ux/{slug}/
-```
+### 5. Usability
+- Nielsen's 10 heuristics
+- WCAG 2.1 AA accessibility
+- Edge case coverage
+- Critical/major/minor issues
 
 ## Quick Mode
 
 | Phase | Full | Quick |
 |-------|------|-------|
-| Research | Full persona, flows | Goals + happy path |
-| ORCA | Full | Full |
+| Research | Full | Goals + happy path |
+| ORCA | Full | Full (always) |
 | Wireframes | All screens | **Skipped** |
 | Writing | All copy | CTAs + errors |
-| Usability | Full heuristics | Checklist only |
+| Usability | Full | Checklist only |
+
+## Use Cases
+
+| Input | Use For |
+|-------|---------|
+| `SPEC.md` | Full app UX |
+| `features/X.md` | Single feature |
+| `PRD.md` | Product requirements |
+| `epic.md` | Implementation phase |
+| `story.md` | User story scope |
+
+## ORCA → Implementation
+
+Use ORCA output to inform technical architecture:
+
+| ORCA | Implementation |
+|------|----------------|
+| Objects | Data models, DB tables |
+| Relationships | Foreign keys, associations |
+| CTAs | API endpoints, UI actions |
+| Attributes | Component props, form fields |
+| States | State management |
 
 ## File Structure
 
 ```
-flow-next-ux-plan/
+ux-plan/
 ├── SKILL.md              # Skill definition
-├── steps.md              # Sequential phases
+├── steps.md              # Phase instructions
 ├── agents/
 │   ├── ux-research-scout.md
 │   ├── ux-orca-scout.md
@@ -207,43 +162,40 @@ flow-next-ux-plan/
     └── usability.md
 ```
 
-## WireMD Syntax
+## Integration
 
-```wiremd
-# Navigation
-[[ Logo | Nav | Nav | Sign Out ]]
+Works standalone or with other tools:
 
-# Buttons
-[Primary Button]
-[Secondary Button]
+```bash
+# Standalone
+/ux-plan SPEC.md
+# Creates .ux/SPEC/
 
-# Inputs
-[Placeholder_______]
+# With flow-next
+/ux-plan .flow/epics/fn-1.md --output .flow/ux/fn-1
+/flow-next:plan "Feature X"  # References .flow/ux/
 
-# Checkboxes
-[ ] Unchecked
-[x] Checked
-
-# Tables
-| Col 1 | Col 2 |
-| Data | Data |
+# With any planning tool
+# Just point to .ux/{name}/ artifacts
 ```
 
-## Prerequisites
+## WireMD Reference
 
-- Claude Code with skills support
-- flow-next installed (`flowctl` available)
-- Optional: `@claude-flow/cli` for memory integration
-
-## Related Skills
-
-- `/flow-next:plan` - Implementation planning (auto-invoked after UX)
-- `/flow-next:work` - Execute implementation
-- `/flow-next:interview` - Deep spec refinement
+```wiremd
+[[ Nav | Items | Here ]]     # Navigation bar
+# Page Title                  # Heading
+[Button Label]               # Button
+[Input placeholder___]       # Text input
+[ ] Unchecked  [x] Checked   # Checkboxes
+( ) Unselected (x) Selected  # Radio buttons
+| Col | Col |                # Table
+| Data | Data |
+---                          # Divider
+```
 
 ## Background
 
-ORCA (Object-Oriented UX) methodology by Sophia Voychehovski bridges UX design and information architecture, ensuring designs are grounded in user mental models.
+ORCA (Object-Oriented UX) methodology by Sophia Voychehovski. Bridges UX design and information architecture by defining the structural foundation (objects, relationships, actions, attributes) before visual design.
 
 ## License
 
