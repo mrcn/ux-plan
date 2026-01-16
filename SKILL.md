@@ -1,145 +1,242 @@
 ---
 name: flow-next-ooux
-description: "Apply ORCA/OOUX methodology to a spec file before implementation. Takes any markdown (PRD, SPEC, epic) and generates UX artifacts in .flow/ux/ for use by flow-next:plan and flow-next:work. Use before /flow-next:plan for user-facing features."
+description: "Apply OOUX methodology to a spec file. Runs interview (if sparse) → 7 parallel research agents → ORCA analysis → Wireframes → Writing → Usability. Outputs enriched spec + .flow/ux/ artifacts for flow-next:plan. Use before /flow-next:plan for user-facing features."
 ---
 
 # Flow-Next OOUX
 
-Apply Object-Oriented UX (OOUX/ORCA) methodology to any spec file. Generates structured UX artifacts in `.flow/ux/` that integrate with flow-next planning and implementation.
+Apply Object-Oriented UX (OOUX) methodology to any spec file. Transforms rough ideas into structured ORCA models through interview and multi-agent research.
+
+## Users
+
+- Solo developers building their own apps
+- UX/Product leads ensuring perfect UX before development
+- Anyone wanting ORCA-structured specs for flow-next
 
 ## Input
 
-```
+```bash
 /flow-next:ooux <spec-file.md>
 /flow-next:ooux <spec-file.md> --quick
+/flow-next:ooux <spec-file.md> --auto      # No pauses between phases
+/flow-next:ooux <spec-file.md> --dry-run   # Preview what will happen
 ```
 
 Examples:
 ```bash
-/flow-next:ooux SPEC.md                        # Full app
-/flow-next:ooux PRD.md                         # Product requirements
-/flow-next:ooux .flow/epics/fn-2.md            # Specific epic
-/flow-next:ooux features/onboarding.md --quick # Quick mode
+/flow-next:ooux SPEC.md                     # Full app
+/flow-next:ooux PRD.md                      # Product requirements
+/flow-next:ooux .flow/epics/fn-2.md         # Specific epic
+/flow-next:ooux features/onboarding.md --quick
 ```
 
-If no file provided, ask: "What spec file should I analyze?"
+**Input quality varies** - from rough 1-paragraph ideas to detailed PRDs.
+
+## Workflow
+
+```
+[Spec File]
+    ↓
+[Interview] ← If input is sparse, light interview (5-10 questions on core functionality)
+    ↓
+[Research Agents] ← 7 agents run in parallel (hybrid execution)
+    ↓
+[ORCA Analysis] ← Extract Objects, Relationships, CTAs, Attributes from research
+    ↓
+[Wireframes] ← WireMD layouts based on ORCA objects
+    ↓
+[UX Writing] ← Real copy for all CTAs, errors, empty states
+    ↓
+[Usability] ← Full validation, auto-fix minor issues
+    ↓
+[Enriched Spec] ← ORCA-structured output for flow-next:plan
+```
+
+## Phase 0: Interview (Conditional)
+
+**Triggers when**: Input spec is sparse (rough idea, < ~500 words)
+
+Light interview (~5-10 questions) focused on core functionality:
+- What does this actually do?
+- Who is the primary user?
+- What are the key actions?
+- What are the main screens/views?
+
+Interview outputs feed into research agents.
+
+## Phase 1: Research Agents (Parallel Swarm)
+
+7 specialized agents run in hybrid parallel/sequential based on dependencies:
+
+| Agent | Focus | Output |
+|-------|-------|--------|
+| **User Researcher** | Persona, JTBD, user mental models | Nouns for ORCA |
+| **Competitor Researcher** | Analyze competitor UX patterns | Best practices |
+| **Design Pattern Researcher** | UI patterns for this domain | Pattern library |
+| **Futurist Designer** | Emerging UI patterns, aesthetic trends | Innovation ideas |
+| **Business Innovation Agent** | Novel monetization, engagement | Business model |
+| **Accessibility Expert** | WCAG/a11y considerations | A11y requirements |
+| **Tech Feasibility Agent** | What's buildable with current stack | Constraints |
+
+Tech Feasibility agent scans `package.json`, `tsconfig.json`, etc. for stack info.
+
+All outputs are concatenated into a single research document.
+
+## Phase 2: ORCA Analysis
+
+Process research outputs using OOUX methodology:
+
+### What Makes a Good Object
+Objects are **nouns from user's mental model** (not database tables, not UI elements):
+- Real-world things users think about: Products, Users, Reviews, Listings
+- High-value anchors that draw users to the system
+
+**NOT Objects**: UI containers, collection views, abstract concepts, actions
+
+### ORCA Components
+
+| Component | Definition | Example |
+|-----------|------------|---------|
+| **Objects** | Core entities (nouns from user mental model) | Book, User, Order |
+| **Relationships** | How objects connect | User has many Books |
+| **CTAs** | Actions per object (verbs) | Upload, Delete, Play |
+| **Attributes** | Visible properties per object | Title, Duration, Status |
+| **States** | Per-object state inventory | loading, error, empty |
+
+### Output Format
+
+Dual output for LLM + human consumption:
+- `02-orca.json` - Structured JSON for LLM processing
+- `02-orca.md` - Condensed summary for human review
+
+## Phase 3: Wireframes (WireMD)
+
+Text-based wireframes using WireMD syntax:
+
+```wiremd
+[[ Logo | Library | Settings | Sign Out ]]
+
+# My Books
+
+[Search_______] [Filter v]
+
+| Title | Author | Actions |
+| Book 1 | Author A | [Play] |
+
+[Upload New Book]
+```
+
+Includes:
+- Screen layouts based on ORCA objects
+- State variations (empty, loading, error, success)
+- Responsive breakpoint notes
+- Interaction notes
+
+**Skipped in --quick mode**
+
+## Phase 4: UX Writing
+
+Generate **real copy** (not placeholders):
+- Headlines and page titles
+- CTA button labels
+- Error messages (what happened + how to fix)
+- Empty state copy
+- Microcopy (helper text, tooltips)
+- Confirmation messages
+
+## Phase 5: Usability Validation
+
+Full validation suite:
+- Nielsen's 10 heuristics
+- WCAG 2.1 AA accessibility
+- Edge case coverage
+- Consistency check across all artifacts
+
+**Auto-fixes minor issues** by iterating on previous phases.
+**Flags major issues** for user decision.
 
 ## Output
 
-All artifacts go to `.flow/ux/{spec-name}/`:
+### Artifacts in `.flow/ux/`
 
 ```
 .flow/
 ├── epics/           # flow-next epics
 ├── tasks/           # flow-next tasks
-└── ux/              # OOUX artifacts (this skill)
+└── ux/              # OOUX artifacts
     └── {spec-name}/
-        ├── 01-research.md
-        ├── 02-orca.md
-        ├── 03-wireframes.md
-        ├── 04-writing.md
-        └── 05-usability.md
+        ├── 00-interview.md     # Interview transcript (if conducted)
+        ├── 01-research.md      # Concatenated research outputs
+        ├── 02-orca.json        # Structured ORCA (for LLM)
+        ├── 02-orca.md          # ORCA summary (for human)
+        ├── 03-wireframes.md    # WireMD layouts
+        ├── 04-writing.md       # All UX copy
+        └── 05-usability.md     # Validation results
 ```
 
-## Workflow
+### Enriched Spec
 
-```
-[Spec File] → Research → ORCA → Wireframes → Writing → Usability
-                ↓          ↓         ↓          ↓          ↓
-              who/why    O-R-C-A   WireMD     copy      validate
-                                    ↓
-                            .flow/ux/{name}/
-                                    ↓
-                          /flow-next:plan (uses artifacts)
-                                    ↓
-                          /flow-next:work (implements)
-```
+Final output is an **ORCA-structured spec** that can be passed to `/flow-next:plan`:
+- Objects, Relationships, CTAs, Attributes as primary structure
+- Supporting notes reference the ORCA model
+- Compatible with flow-next:plan input format
 
-Follow [steps.md](steps.md) for detailed phase instructions.
+### Git Integration
 
-## Flow-Next Integration
+Auto-commits artifacts with message: `ooux: {spec-name}`
 
-### Before OOUX
-```bash
-# Check existing flow context
-flowctl list epics
-flowctl show fn-1 --json
-```
+## Flow Control
 
-### After OOUX Complete
-```bash
-# Plan implementation using UX artifacts
-/flow-next:plan "Feature X"
-# → Automatically detects .flow/ux/{name}/ and references it
+### Default: Pause Between Phases
 
-# Or create epic directly
-flowctl add epic --title "Feature" --ux-artifacts .flow/ux/{name}/
-```
+After each phase:
+1. Show output summary
+2. User can: **Continue** | **Edit** | **Regenerate** (with free text feedback)
 
-### ORCA → Implementation Mapping
+### --auto Flag
 
-flow-next:plan uses ORCA to inform architecture:
+Run all phases without pausing.
 
-| ORCA | Technical Decision |
-|------|-------------------|
-| Objects | Data models, DB tables, TypeScript types |
-| Relationships | Foreign keys, associations, API nesting |
-| CTAs | API endpoints, UI actions, mutations |
-| Attributes | Component props, form fields, columns |
-| States | State machine, UI states, loading/error |
+### --dry-run Flag
 
-## The 5 Phases
-
-### 1. Research
-- Target persona (who)
-- Jobs-to-be-done (why)
-- Happy path flow
-- Edge cases
-- Success metrics
-
-### 2. ORCA Analysis
-- **Objects**: Core entities (nouns)
-- **Relationships**: How objects connect
-- **CTAs**: Actions per object (verbs)
-- **Attributes**: Visible properties
-- **States**: Per-object state inventory
-
-### 3. Wireframes (WireMD)
-- Screen layouts
-- State variations (empty, loading, error, success)
-- Responsive notes
-- Interaction notes
-
-### 4. UX Writing
-- Headlines, titles
-- CTA labels
-- Error messages
-- Empty states
-- Microcopy
-
-### 5. Usability
-- Nielsen's 10 heuristics
-- WCAG 2.1 AA
-- Edge case coverage
-- Critical issues flagged
+Preview what will happen:
+- Which agents will run
+- Which phases will execute
+- Estimated time
 
 ## Options
 
 | Flag | Description |
 |------|-------------|
-| `--quick` | Abbreviated (~15 min vs ~45 min) |
-| `--phase <n>` | Run single phase (1-5) |
+| `--quick` | ~15 min: Skip wireframes, abbreviated research |
+| `--auto` | No pauses between phases |
+| `--dry-run` | Preview execution plan |
+| `--phase <n>` | Run single phase (0-5) |
 | `--skip-wireframes` | Skip phase 3 |
 
 ## Quick Mode
 
-| Phase | Full | Quick |
-|-------|------|-------|
-| Research | Full | Goals + happy path |
+| Phase | Full (~30 min) | Quick (~15 min) |
+|-------|----------------|-----------------|
+| Interview | If needed | If needed |
+| Research | 7 agents | 3 agents (user, competitor, tech) |
 | ORCA | Full | Full (always) |
-| Wireframes | All | **Skipped** |
-| Writing | All | CTAs + errors |
-| Usability | Full | Checklist only |
+| Wireframes | All screens | **Skipped** |
+| Writing | All copy | CTAs + errors only |
+| Usability | Full + auto-fix | Checklist only |
+
+## Error Handling
+
+If a research agent fails or returns poor results:
+- **Stop and ask user** how to proceed
+- Options: Retry, Skip agent, Abort
+
+## Completion
+
+After all phases:
+1. Report artifacts created
+2. Highlight key ORCA objects and critical issues
+3. Ask: "Run /flow-next:plan with enriched spec?"
 
 ## When to Use
 
@@ -150,12 +247,3 @@ flow-next:plan uses ORCA to inform architecture:
 | New screens/flows | Backend-only changes |
 | Redesigns | Config changes |
 | PRD → Implementation | Technical debt |
-
-## Success Criteria
-
-- [ ] Research identifies clear persona and goals
-- [ ] ORCA defines all objects and CTAs
-- [ ] Wireframes show key screens (unless skipped)
-- [ ] Writing covers all user-facing copy
-- [ ] Usability finds no critical issues
-- [ ] Artifacts in `.flow/ux/` ready for flow-next:plan
